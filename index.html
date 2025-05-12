@@ -30,14 +30,6 @@
             -webkit-user-select: none; /* Prevent text selection */
             user-select: none;
         }
-        #gameContainer {
-            position: relative;
-            width: 90vw;
-            height: 90vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
         img {
             width: 100%;
             height: 100%;
@@ -47,37 +39,12 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
         }
-        #touchOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-        }
-        /* Visual feedback for touch */
-        .touchFeedback {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: rgba(100, 200, 255, 0.5);
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            animation: pulse 0.5s ease-out;
-        }
-        @keyframes pulse {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
-        }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <img id="gameImage" src="A.png" alt="תמונה">
-        <div id="touchOverlay"></div>
-    </div>
+    <img id="gameImage" src="A.png" alt="תמונה">
     <audio id="soundEffect" src="A.mp3"></audio>
+
     <script>
         const images = [
             { src: "A.png", sound: "A.mp3" },
@@ -109,149 +76,68 @@
         ];
         
         let currentIndex = 0;
-        let lastInteractionTime = 0;
-        const cooldownPeriod = 500; // Cooldown period in milliseconds to prevent accidental multiple activations
-        const overlay = document.getElementById('touchOverlay');
-        const imgElement = document.getElementById('gameImage');
-        const soundElement = document.getElementById('soundEffect');
-        
+        let touchStartTime = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const touchThreshold = 50; // Pixels for slide detection
+        const tapDuration = 1000; // Max ms for a tap
+
         function nextImage() {
-            const now = Date.now();
-            if (now - lastInteractionTime < cooldownPeriod) {
-                return; // Still in cooldown period, ignore this interaction
-            }
-            
-            lastInteractionTime = now;
             currentIndex = (currentIndex + 1) % images.length;
+            const imgElement = document.getElementById('gameImage');
+            const soundElement = document.getElementById('soundEffect');
+
             imgElement.src = images[currentIndex].src;
             soundElement.src = images[currentIndex].sound;
             soundElement.play().catch((error) => {
                 console.error('Audio playback failed:', error);
             });
         }
-        
-        // Add visual feedback for touch
-        function showTouchFeedback(x, y) {
-            const feedback = document.createElement('div');
-            feedback.className = 'touchFeedback';
-            feedback.style.left = x + 'px';
-            feedback.style.top = y + 'px';
-            document.body.appendChild(feedback);
-            
-            // Remove the element after animation completes
-            setTimeout(() => {
-                feedback.remove();
-            }, 500);
-        }
-        
-        // Track touch interactions
-        let activeTouches = {};
-        let touchMovedDistance = {};
-        
-        // Handle touch start
-        overlay.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            
-            // Store all new touch points
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                activeTouches[touch.identifier] = { 
-                    x: touch.clientX, 
-                    y: touch.clientY 
-                };
-                touchMovedDistance[touch.identifier] = 0;
-                
-                // Show visual feedback
-                showTouchFeedback(touch.clientX, touch.clientY);
+
+        const imgElement = document.getElementById('gameImage');
+
+        imgElement.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            touchStartTime = Date.now();
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        }, { passive: true });
+
+        imgElement.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            if (distance > touchThreshold) {
+                nextImage();
+                // Reset touch start to prevent multiple triggers
+                touchStartTime = 0;
             }
-            
-            // If this is the first touch or we have multiple touches, trigger next image
-            if (Object.keys(activeTouches).length === 1 || Object.keys(activeTouches).length > 1) {
+        }, { passive: true });
+
+        imgElement.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            const touch = e.changedTouches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Consider it a tap if duration is short and movement is minimal
+            if (touchDuration < tapDuration && distance < touchThreshold) {
                 nextImage();
             }
-        }, { passive: false });
-        
-        // Handle touch move (for sliding finger support)
-        overlay.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                
-                if (activeTouches[touch.identifier]) {
-                    // Calculate distance moved
-                    const dx = touch.clientX - activeTouches[touch.identifier].x;
-                    const dy = touch.clientY - activeTouches[touch.identifier].y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    // Add to total distance moved
-                    touchMovedDistance[touch.identifier] += distance;
-                    
-                    // Update position
-                    activeTouches[touch.identifier] = { 
-                        x: touch.clientX, 
-                        y: touch.clientY 
-                    };
-                    
-                    // If moved more than threshold, consider it a new interaction
-                    if (touchMovedDistance[touch.identifier] > 30) { // 30px threshold
-                        touchMovedDistance[touch.identifier] = 0;
-                        nextImage();
-                        showTouchFeedback(touch.clientX, touch.clientY);
-                    }
-                }
-            }
-        }, { passive: false });
-        
-        // Handle touch end
-        overlay.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            
-            // Remove ended touches
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                delete activeTouches[touch.identifier];
-                delete touchMovedDistance[touch.identifier];
-            }
-        }, { passive: false });
-        
-        // Handle touch cancel
-        overlay.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            
-            // Remove cancelled touches
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                delete activeTouches[touch.identifier];
-                delete touchMovedDistance[touch.identifier];
-            }
-        }, { passive: false });
-        
-        // Also support mouse clicks for testing on desktop
-        overlay.addEventListener('click', (e) => {
-            e.preventDefault();
-            nextImage();
-            showTouchFeedback(e.clientX, e.clientY);
-        });
-        
-        // Add keyboard support for testing and accessibility
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
-                nextImage();
-            }
-        });
-        
+        }, { passive: true });
+
+        // Handle multi-touch: allow taps even if other fingers are on the screen
+        document.addEventListener('touchstart', (e) => {
+            // Don't prevent default for single or multi-touch to allow all interactions
+        }, { passive: true });
+
         // Ensure full-screen on orientation change
         window.addEventListener('orientationchange', () => {
             document.body.style.height = window.innerHeight + 'px';
         });
-        
-        // Ensure sound can be played (handle autoplay restrictions)
-        document.addEventListener('click', () => {
-            // Create and play a silent sound to enable audio
-            const silentSound = new Audio('data:audio/mp3;base64,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</audio>
-            silentSound.play().catch(e => {});
-        }, { once: true });
     </script>
 </body>
 </html>
