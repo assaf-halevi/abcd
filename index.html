@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק תמונות עם סאונד</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            direction: rtl;
+        }
+        img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <img id="gameImage" src="A.png" alt="תמונה" onclick="nextImage()">
+    <audio id="soundEffect" src="A.mp3"></audio>
+
+    <script>
+        const images = [
+            { src: "A.png", sound: "A.mp3" },
+            { src: "B.png", sound: "B.mp3" },
+            { src: "C.png", sound: "C.mp3" },
+            { src: "D.png", sound: "D.mp3" },
+            { src: "E.png", sound: "E.mp3" },
+            { src: "F.png", sound: "F.mp3" },
+            { src: "G.png", sound: "G.mp3" },
+            { src: "H.png", sound: "H.mp3" },
+            { src: "I.png", sound: "I.mp3" },
+            { src: "J.png", sound: "J.mp3" },
+            { src: "K.png", sound: "K.mp3" },
+            { src: "L.png", sound: "L.mp3" },
+            { src: "M.png", sound: "M.mp3" },
+            { src: "N.png", sound: "N.mp3" },
+            { src: "O.png", sound: "O.mp3" },
+            { src: "P.png", sound: "P.mp3" },
+            { src: "Q.png", sound: "Q.mp3" },
+            { src: "R.png", sound: "R.mp3" },
+            { src: "S.png", sound: "S.mp3" },
+            { src: "T.png", sound: "T.mp3" },
+            { src: "U.png", sound: "U.mp3" },
+            { src: "V.png", sound: "V.mp3" },
+            { src: "W.png", sound: "W.mp3" },
+            { src: "X.png", sound: "X.mp3" },
+            { src: "Y.png", sound: "Y.mp3" },
+            { src: "Z.png", sound: "Z.mp3" }
+        ];
+        
+        let currentIndex = 0;
+
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % images.length;
+            const imgElement = document.getElementById('gameImage');
+            const soundElement = document.getElementById('soundEffect');
+
+            imgElement.src = images[currentIndex].src;
+            soundElement.src = images[currentIndex].sound;
+            soundElement.play();
+        }
+    </script>
+</body>
+</html>
