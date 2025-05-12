@@ -5,7 +5,7 @@ const CACHE_NAME = 'abcd-game-v1';
 const FILES_TO_CACHE = [
     '/',
     'index.html',
-    'icon-192.png',
+    'icon.png',
     'icon-512.png',
     'manifest.json',
     // Images A-Z
