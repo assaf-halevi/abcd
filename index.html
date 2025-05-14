@@ -76,37 +76,104 @@
         ];
 
         let currentIndex = 0;
-        let useAltSound = true; // Start with alt sound set (A1, B1, etc.)
-        const switchPoints = ['h', 'q', 't', 'w', 'y']; // Letters triggering sound set change
+        let useAltSound = true;
+        const switchPoints = ['g', 'p', 's', 'v', 'x'];
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
         const touchThreshold = 50;
         const tapDuration = 1000;
 
+        // Web Audio API setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let soundBuffers = {};
+        let failedSounds = new Set(); // Track sounds that failed to preload
+
+        // Preload all audio files into buffers
+        async function preloadAudio() {
+            for (const item of images) {
+                try {
+                    const soundResponse = await fetch(item.sound);
+                    if (!soundResponse.ok) throw new Error(`HTTP error ${soundResponse.status} for ${item.sound}`);
+                    const altSoundResponse = await fetch(item.altSound);
+                    if (!altSoundResponse.ok) throw new Error(`HTTP error ${altSoundResponse.status} for ${item.altSound}`);
+                    const soundArrayBuffer = await soundResponse.arrayBuffer();
+                    const altSoundArrayBuffer = await altSoundResponse.arrayBuffer();
+                    soundBuffers[item.sound] = await audioContext.decodeAudioData(soundArrayBuffer);
+                    soundBuffers[item.altSound] = await audioContext.decodeAudioData(altSoundArrayBuffer);
+                    console.log(`Loaded: ${item.sound}, ${item.altSound}`);
+                } catch (error) {
+                    console.error(`Failed to preload ${item.sound} or ${item.altSound}:`, error);
+                    failedSounds.add(item.sound);
+                    failedSounds.add(item.altSound);
+                }
+            }
+            console.log('Preloading complete. Failed sounds:', [...failedSounds]);
+        }
+
+        // Play sound using Web Audio API or fallback to <audio>
+        function playSound(soundFile) {
+            if (!failedSounds.has(soundFile) && soundBuffers[soundFile]) {
+                try {
+                    const source = audioContext.createBufferSource();
+                    source.buffer = soundBuffers[soundFile];
+                    source.connect(audioContext.destination);
+                    source.start(0);
+                } catch (error) {
+                    console.error(`Web Audio playback failed for ${soundFile}:`, error);
+                    fallbackPlaySound(soundFile);
+                }
+            } else {
+                console.warn(`Buffer not found for ${soundFile}, using fallback`);
+                fallbackPlaySound(soundFile);
+            }
+        }
+
+        // Fallback to <audio> element
+        function fallbackPlaySound(soundFile) {
+            const soundElement = document.getElementById('soundEffect');
+            soundElement.src = soundFile;
+            soundElement.play().catch((error) => {
+                console.error(`Fallback audio playback failed for ${soundFile}:`, error);
+            });
+        }
+
+        // Initialize audio context and preload sounds
+        let isAudioContextStarted = false;
+        function startAudioContext() {
+            if (!isAudioContextStarted && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    isAudioContextStarted = true;
+                    console.log('AudioContext resumed');
+                    preloadAudio().then(() => {
+                        console.log('All audio files preloaded');
+                        // Play initial sound
+                        playSound(images[currentIndex].altSound);
+                    });
+                }).catch((error) => {
+                    console.error('Failed to resume AudioContext:', error);
+                });
+            }
+        }
+
         function nextImage() {
             currentIndex = (currentIndex + 1) % images.length;
             const imgElement = document.getElementById('gameImage');
-            const soundElement = document.getElementById('soundEffect');
 
-            // Determine current letter (lowercase for comparison)
             const currentLetter = images[currentIndex].src.charAt(0).toLowerCase();
-
-            // Check if the current letter is a switch point and not 'a'
             if (currentLetter !== 'a' && switchPoints.includes(currentLetter)) {
-                useAltSound = !useAltSound; // Toggle sound set
+                useAltSound = !useAltSound;
             }
 
             imgElement.src = images[currentIndex].src;
-            soundElement.src = useAltSound ? images[currentIndex].altSound : images[currentIndex].sound;
-            soundElement.play().catch((error) => {
-                console.error('Audio playback failed:', error);
-            });
+            const soundToPlay = useAltSound ? images[currentIndex].altSound : images[currentIndex].sound;
+            playSound(soundToPlay);
         }
 
         const imgElement = document.getElementById('gameImage');
 
         imgElement.addEventListener('touchstart', (e) => {
+            startAudioContext();
             const touch = e.touches[0];
             touchStartTime = Date.now();
             touchStartX = touch.clientX;
