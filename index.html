@@ -26,8 +26,8 @@
             overflow: hidden;
             background-color: #f0f0f0;
             direction: rtl;
-            touch-action: manipulation; /* Optimize touch interactions */
-            -webkit-user-select: none; /* Prevent text selection */
+            touch-action: manipulation;
+            -webkit-user-select: none;
             user-select: none;
         }
         img {
@@ -37,58 +37,68 @@
             max-height: 80vh;
             object-fit: contain;
             cursor: pointer;
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
 <body>
     <img id="gameImage" src="A.png" alt="תמונה">
-    <audio id="soundEffect" src="A.mp3"></audio>
+    <audio id="soundEffect" src="A1.mp3"></audio>
 
     <script>
         const images = [
-            { src: "A.png", sound: "A.mp3" },
-            { src: "B.png", sound: "B.mp3" },
-            { src: "C.png", sound: "C.mp3" },
-            { src: "D.png", sound: "D.mp3" },
-            { src: "E.png", sound: "E.mp3" },
-            { src: "F.png", sound: "F.mp3" },
-            { src: "G.png", sound: "G.mp3" },
-            { src: "H.png", sound: "H.mp3" },
-            { src: "I.png", sound: "I.mp3" },
-            { src: "J.png", sound: "J.mp3" },
-            { src: "K.png", sound: "K.mp3" },
-            { src: "L.png", sound: "L.mp3" },
-            { src: "M.png", sound: "M.mp3" },
-            { src: "N.png", sound: "N.mp3" },
-            { src: "O.png", sound: "O.mp3" },
-            { src: "P.png", sound: "P.mp3" },
-            { src: "Q.png", sound: "Q.mp3" },
-            { src: "R.png", sound: "R.mp3" },
-            { src: "S.png", sound: "S.mp3" },
-            { src: "T.png", sound: "T.mp3" },
-            { src: "U.png", sound: "U.mp3" },
-            { src: "V.png", sound: "V.mp3" },
-            { src: "W.png", sound: "W.mp3" },
-            { src: "X.png", sound: "X.mp3" },
-            { src: "Y.png", sound: "Y.mp3" },
-            { src: "Z.png", sound: "Z.mp3" }
+            { src: "A.png", sound: "A.mp3", altSound: "A1.mp3" },
+            { src: "B.png", sound: "B.mp3", altSound: "B1.mp3" },
+            { src: "C.png", sound: "C.mp3", altSound: "C1.mp3" },
+            { src: "D.png", sound: "D.mp3", altSound: "D1.mp3" },
+            { src: "E.png", sound: "E.mp3", altSound: "E1.mp3" },
+            { src: "F.png", sound: "F.mp3", altSound: "F1.mp3" },
+            { src: "G.png", sound: "G.mp3", altSound: "G1.mp3" },
+            { src: "H.png", sound: "H.mp3", altSound: "H1.mp3" },
+            { src: "I.png", sound: "I.mp3", altSound: "I1.mp3" },
+            { src: "J.png", sound: "J.mp3", altSound: "J1.mp3" },
+            { src: "K.png", sound: "K.mp3", altSound: "K1.mp3" },
+            { src: "L.png", sound: "L.mp3", altSound: "L1.mp3" },
+            { src: "M.png", sound: "M.mp3", altSound: "M1.mp3" },
+            { src: "N.png", sound: "N.mp3", altSound: "N1.mp3" },
+            { src: "O.png", sound: "O.mp3", altSound: "O1.mp3" },
+            { src: "P.png", sound: "P.mp3", altSound: "P1.mp3" },
+            { src: "Q.png", sound: "Q.mp3", altSound: "Q1.mp3" },
+            { src: "R.png", sound: "R.mp3", altSound: "R1.mp3" },
+            { src: "S.png", sound: "S.mp3", altSound: "S1.mp3" },
+            { src: "T.png", sound: "T.mp3", altSound: "T1.mp3" },
+            { src: "U.png", sound: "U.mp3", altSound: "U1.mp3" },
+            { src: "V.png", sound: "V.mp3", altSound: "V1.mp3" },
+            { src: "W.png", sound: "W.mp3", altSound: "W1.mp3" },
+            { src: "X.png", sound: "X.mp3", altSound: "X1.mp3" },
+            { src: "Y.png", sound: "Y.mp3", altSound: "Y1.mp3" },
+            { src: "Z.png", sound: "Z.mp3", altSound: "Z1.mp3" }
         ];
-        
+
         let currentIndex = 0;
+        let useAltSound = true; // Start with alt sound set (A1, B1, etc.)
+        const switchPoints = ['g', 'p', 's', 'v', 'x']; // Letters triggering sound set change
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
-        const touchThreshold = 50; // Pixels for slide detection
-        const tapDuration = 1000; // Max ms for a tap
+        const touchThreshold = 50;
+        const tapDuration = 1000;
 
         function nextImage() {
             currentIndex = (currentIndex + 1) % images.length;
             const imgElement = document.getElementById('gameImage');
             const soundElement = document.getElementById('soundEffect');
 
+            // Determine current letter (lowercase for comparison)
+            const currentLetter = images[currentIndex].src.charAt(0).toLowerCase();
+
+            // Check if the current letter is a switch point and not 'a'
+            if (currentLetter !== 'a' && switchPoints.includes(currentLetter)) {
+                useAltSound = !useAltSound; // Toggle sound set
+            }
+
             imgElement.src = images[currentIndex].src;
-            soundElement.src = images[currentIndex].sound;
+            soundElement.src = useAltSound ? images[currentIndex].altSound : images[currentIndex].sound;
             soundElement.play().catch((error) => {
                 console.error('Audio playback failed:', error);
             });
@@ -111,7 +121,6 @@
 
             if (distance > touchThreshold) {
                 nextImage();
-                // Reset touch start to prevent multiple triggers
                 touchStartTime = 0;
             }
         }, { passive: true });
@@ -123,18 +132,13 @@
             const deltaY = touch.clientY - touchStartY;
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            // Consider it a tap if duration is short and movement is minimal
             if (touchDuration < tapDuration && distance < touchThreshold) {
                 nextImage();
             }
         }, { passive: true });
 
-        // Handle multi-touch: allow taps even if other fingers are on the screen
-        document.addEventListener('touchstart', (e) => {
-            // Don't prevent default for single or multi-touch to allow all interactions
-        }, { passive: true });
+        document.addEventListener('touchstart', (e) => {}, { passive: true });
 
-        // Ensure full-screen on orientation change
         window.addEventListener('orientationchange', () => {
             document.body.style.height = window.innerHeight + 'px';
         });
