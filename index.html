@@ -43,6 +43,7 @@
 </head>
 <body>
     <img id="gameImage" src="A.png" alt="תמונה">
+    <audio id="soundEffect" src="A1.mp3"></audio>
 
     <script>
         const images = [
@@ -76,82 +77,36 @@
 
         let currentIndex = 0;
         let useAltSound = true; // Start with alt sound set (A1, B1, etc.)
-        const switchPoints = ['h', 'q', 't', 'w', 'y'];
+        const switchPoints = ['h', 'q', 't', 'w', 'y']; // Letters triggering sound set change
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
         const touchThreshold = 50;
         const tapDuration = 1000;
 
-        // Web Audio API setup
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let soundBuffers = {};
-
-        // Preload all audio files into buffers
-        async function preloadAudio() {
-            for (const item of images) {
-                try {
-                    const soundResponse = await fetch(item.sound);
-                    const altSoundResponse = await fetch(item.altSound);
-                    const soundArrayBuffer = await soundResponse.arrayBuffer();
-                    const altSoundArrayBuffer = await altSoundResponse.arrayBuffer();
-                    soundBuffers[item.sound] = await audioContext.decodeAudioData(soundArrayBuffer);
-                    soundBuffers[item.altSound] = await audioContext.decodeAudioData(altSoundArrayBuffer);
-                } catch (error) {
-                    console.error(`Failed to preload audio ${item.sound} or ${item.altSound}:`, error);
-                }
-            }
-        }
-
-        // Play sound using Web Audio API
-        function playSound(soundFile) {
-            const buffer = soundBuffers[soundFile];
-            if (!buffer) {
-                console.error(`Buffer not found for ${soundFile}`);
-                return;
-            }
-            const source = audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContext.destination);
-            source.start(0);
-        }
-
-        // Initialize audio context and preload sounds
-        let isAudioContextStarted = false;
-        function startAudioContext() {
-            if (!isAudioContextStarted && audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    isAudioContextStarted = true;
-                    preloadAudio().then(() => {
-                        console.log('All audio files preloaded');
-                        // Play initial sound
-                        playSound(images[currentIndex].altSound);
-                    });
-                });
-            }
-        }
-
         function nextImage() {
             currentIndex = (currentIndex + 1) % images.length;
             const imgElement = document.getElementById('gameImage');
+            const soundElement = document.getElementById('soundEffect');
 
             // Determine current letter (lowercase for comparison)
             const currentLetter = images[currentIndex].src.charAt(0).toLowerCase();
 
-            // Toggle sound set at switch points, except at 'a'
+            // Check if the current letter is a switch point and not 'a'
             if (currentLetter !== 'a' && switchPoints.includes(currentLetter)) {
-                useAltSound = !useAltSound;
+                useAltSound = !useAltSound; // Toggle sound set
             }
 
             imgElement.src = images[currentIndex].src;
-            const soundToPlay = useAltSound ? images[currentIndex].altSound : images[currentIndex].sound;
-            playSound(soundToPlay);
+            soundElement.src = useAltSound ? images[currentIndex].altSound : images[currentIndex].sound;
+            soundElement.play().catch((error) => {
+                console.error('Audio playback failed:', error);
+            });
         }
 
         const imgElement = document.getElementById('gameImage');
 
         imgElement.addEventListener('touchstart', (e) => {
-            startAudioContext(); // Ensure audio context is started on first touch
             const touch = e.touches[0];
             touchStartTime = Date.now();
             touchStartX = touch.clientX;
